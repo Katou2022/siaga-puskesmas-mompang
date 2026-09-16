@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIAGA - UPTD Puskesmas Mompang</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- QRCode.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- HTML5 QR Code Scanner Library -->
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+    <!-- jsPDF & AutoTable Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
+    <!-- SheetJS (XLSX Reader) Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <style>
+        .bg-custom-app { background-size: cover; background-position: center; }
+    </style>
+</head>
+<body id="appBody" class="bg-slate-100 font-sans text-slate-800 bg-custom-app min-h-screen">
+
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 bg-slate-900 bg-opacity-95 z-50 flex items-center justify-center p-4">
+        <div class="bg-white p-8 rounded-2xl shadow-2xl max-w-md w-full text-center space-y-6">
+            <img id="loginLogoSiaga" src="https://via.placeholder.com/80?text=SIAGA" alt="Logo SIAGA" class="h-20 w-20 rounded-full mx-auto border-2 border-emerald-500 p-1">
+            <div>
+                <h2 class="text-2xl font-extrabold text-slate-900">Sistem SIAGA</h2>
+                <p class="text-xs text-slate-500 mt-1">UPTD Puskesmas Mompang</p>
+            </div>
+            <form onsubmit="handleLogin(event)" class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Username</label>
+                    <input type="text" class="w-full border p-3 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" required placeholder="Admin">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 uppercase mb-1">Password</label>
+                    <input type="password" class="w-full border p-3 rounded-lg text-sm focus:ring-2 focus:ring-emerald-500" required placeholder="••••••••">
+                </div>
+                <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg shadow-lg">Masuk Sistem</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- MAIN DASHBOARD -->
+    <div id="mainApp" class="hidden min-h-screen flex flex-col">
+        <!-- HEADER KOP SURAT -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4 flex flex-wrap justify-between items-center shadow-md">
+            <div class="flex items-center space-x-4">
+                <img id="headerLogoKop" src="https://via.placeholder.com/60?text=Puskesmas" alt="Logo" class="h-14">
+                <div>
+                    <h1 class="text-md md:text-lg font-bold text-slate-900 leading-tight">PEMERINTAH KABUPATEN MANDAILING NATAL</h1>
+                    <h2 class="text-sm md:text-md font-semibold text-emerald-700">UPTD PUSKESMAS MOMPANG</h2>
+                    <p class="text-xs text-slate-500">Sistem Inventarisasi Aset Berbasis QR-Code (SIAGA)</p>
+                </div>
+            </div>
+            <button onclick="handleLogout()" class="bg-red-500 hover:bg-red-600 text-white text-xs px-3.5 py-2 rounded-lg font-bold">Logout</button>
+        </header>
+
+        <div class="flex-1 flex flex-col md:flex-row">
+            <!-- SIDEBAR NAVIGASI -->
+            <aside class="w-full md:w-64 bg-slate-900 text-slate-300 p-5 space-y-3">
+                <div class="flex items-center space-x-3 mb-6 border-b border-slate-800 pb-4">
+                    <img id="sidebarLogoSiaga" src="https://via.placeholder.com/40?text=SIAGA" alt="Logo" class="h-10 w-10 rounded">
+                    <span class="text-xl font-black text-white">SIAGA</span>
+                </div>
+                <nav class="space-y-1 text-sm font-semibold">
+                    <button onclick="switchTab('entry')" id="nav-entry" class="w-full text-left px-4 py-3 rounded-lg bg-emerald-600 text-white">📝 Entry Aset Baru</button>
+                    <button onclick="switchTab('import')" id="nav-import" class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800">📥 Upload Excel Aset</button>
+                    <button onclick="switchTab('scan')" id="nav-scan" class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800">📷 Scan QR Kamera HP</button>
+                    <button onclick="switchTab('laporan')" id="nav-laporan" class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800">📋 Daftar & Laporan PDF</button>
+                    <button onclick="switchTab('settings')" id="nav-settings" class="w-full text-left px-4 py-3 rounded-lg hover:bg-slate-800">⚙️ Pengaturan Website</button>
+                </nav>
+            </aside>
+
+            <!-- MAIN CONTENT AREA -->
+            <main class="flex-1 p-4 md:p-8 space-y-6">
+                <!-- TAB 1: ENTRY ASET -->
+                <section id="tab-entry" class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200">
+                    <h3 class="text-xl font-bold text-slate-800 mb-4 border-b pb-2">📝 Form Entry Aset Baru</h3>
+                    <form onsubmit="handleEntryAset(event)" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">ID Aset</label>
+                            <input type="text" id="entryAsetID" class="w-full border p-2.5 rounded-lg text-sm bg-slate-100 font-mono" readonly>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Kode Barang</label>
+                            <input type="text" id="entryKodeBarang" class="w-full border p-2.5 rounded-lg text-sm" required placeholder="1010101001">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Nama Sarana / Prasarana</label>
+                            <input type="text" id="entryNamaBarang" class="w-full border p-2.5 rounded-lg text-sm" required placeholder="Tensimeter Digital">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Merk / Tipe</label>
+                            <input type="text" id="entryMerkTipe" class="w-full border p-2.5 rounded-lg text-sm" required placeholder="Omron HEM-7120">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Lokasi Ruangan</label>
+                            <input type="text" id="entryLokasi" class="w-full border p-2.5 rounded-lg text-sm" required placeholder="Poli Umum">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Kondisi Aset (4 Kategori)</label>
+                            <select id="entryKondisi" class="w-full border p-2.5 rounded-lg text-sm font-semibold" required>
+                                <option value="Baik" class="text-emerald-600">🟢 Baik</option>
+                                <option value="Rusak Ringan" class="text-amber-500">🟡 Rusak Ringan</option>
+                                <option value="Rusak Sedang" class="text-orange-500">🟠 Rusak Sedang</option>
+                                <option value="Rusak Berat" class="text-red-600">🔴 Rusak Berat</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">Tahun Pengadaan</label>
+                            <input type="number" id="entryTahun" class="w-full border p-2.5 rounded-lg text-sm" value="2026" required>
+                        </div>
+                        <div class="md:col-span-2 pt-2">
+                            <button type="submit" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3 rounded-lg shadow-lg">Simpan Aset & Generate QR-Code</button>
+                        </div>
+                    </form>
+                    <div id="qrOutputCard" class="mt-6 hidden p-6 bg-slate-50 border rounded-xl text-center">
+                        <h4 class="text-sm font-bold text-slate-700 mb-2">QR-Code Aset Dihasilkan:</h4>
+                        <div id="qrcodeCanvas" class="flex justify-center my-2"></div>
+                        <p id="qrOutputLabel" class="text-xs font-mono font-bold text-slate-600"></p>
+                    </div>
+                </section>
+
+                <!-- TAB 2: IMPORT EXCEL -->
+                <section id="tab-import" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <h3 class="text-xl font-bold text-slate-800 border-b pb-2">📥 Upload File Excel Bahan Aset</h3>
+                    <div class="border-2 border-dashed border-slate-300 p-8 rounded-xl text-center bg-slate-50">
+                        <input type="file" id="excelFileInput" accept=".xlsx, .xls, .csv" class="hidden" onchange="handleExcelUpload(event)">
+                        <label for="excelFileInput" class="cursor-pointer bg-slate-800 text-white text-xs px-5 py-3 rounded-lg font-bold shadow hover:bg-slate-700 inline-block">Pilih File Excel</label>
+                        <p id="excelFileName" class="text-xs font-mono text-slate-600 mt-2">Belum ada file dipilih.</p>
+                    </div>
+                </section>
+
+                <!-- TAB 3: SCANNER CAMERA -->
+                <section id="tab-scan" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <h3 class="text-xl font-bold text-slate-800 border-b pb-2">📷 Pemindai QR-Code Kamera HP</h3>
+                    <div class="max-w-md mx-auto space-y-4">
+                        <div id="qr-reader" class="rounded-xl overflow-hidden border border-slate-300 shadow"></div>
+                        <div id="scanOutputCard" class="hidden p-4 bg-emerald-50 border border-emerald-200 text-slate-800 rounded-xl">
+                            <h4 class="text-xs font-bold uppercase text-emerald-800">Hasil Pemindaian:</h4>
+                            <p id="scanDetails" class="text-sm font-semibold mt-1"></p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- TAB 4: LAPORAN & PDF -->
+                <section id="tab-laporan" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-4">
+                    <div class="flex justify-between items-center border-b pb-2">
+                        <h3 class="text-xl font-bold text-slate-800">📋 Daftar Inventaris Aset</h3>
+                        <button onclick="downloadPDFLaporan()" class="bg-red-600 hover:bg-red-700 text-white text-xs px-4 py-2.5 rounded-lg font-bold shadow">📄 Download Laporan PDF</button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left text-xs text-slate-700 border-collapse">
+                            <thead class="bg-slate-800 text-white uppercase text-[10px]">
+                                <tr>
+                                    <th class="p-3">ID Aset</th>
+                                    <th class="p-3">Kode</th>
+                                    <th class="p-3">Nama Sarana/Prasarana</th>
+                                    <th class="p-3">Merk/Tipe</th>
+                                    <th class="p-3">Lokasi</th>
+                                    <th class="p-3">Kondisi</th>
+                                    <th class="p-3">Tahun</th>
+                                </tr>
+                            </thead>
+                            <tbody id="tableAsetBody" class="divide-y divide-slate-200 font-medium"></tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- TAB 5: SETTINGS -->
+                <section id="tab-settings" class="hidden bg-white p-6 rounded-2xl shadow-sm border border-slate-200 space-y-6">
+                    <h3 class="text-xl font-bold text-slate-800 border-b pb-2">⚙️ Pengaturan Website & Apps Script</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">URL Web App Google Apps Script API</label>
+                            <input type="text" id="settingAppsScriptUrl" class="w-full border p-2.5 rounded-lg text-sm font-mono" placeholder="https://script.google.com/macros/s/.../exec">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">URL Gambar Kop Surat</label>
+                            <input type="text" id="settingLogoKopUrl" class="w-full border p-2.5 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">URL Logo SIAGA</label>
+                            <input type="text" id="settingLogoSiagaUrl" class="w-full border p-2.5 rounded-lg text-sm">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-slate-700 mb-1">URL Background Website</label>
+                            <input type="text" id="settingBgUrl" class="w-full border p-2.5 rounded-lg text-sm">
+                        </div>
+                    </div>
+                    <button onclick="saveSettings()" class="bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs px-6 py-3 rounded-lg shadow">Simpan Konfigurasi Tampilan</button>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- JAVASCRIPT SYSTEM ENGINE -->
+    <script>
+        let assetDataStore = [
+            { id: "AST-001", kode: "1010101001", nama: "Tensimeter Digital", merk: "Omron HEM-7120", lokasi: "Poli Umum", kondisi: "Baik", tahun: 2023 },
+            { id: "AST-002", kode: "1010101002", nama: "Stetoskop Duplex", merk: "Riester", lokasi: "Poli KIA/KB", kondisi: "Baik", tahun: 2022 },
+            { id: "AST-003", kode: "1010101003", nama: "Timbangan Badan Digital", merk: "GEA Medical", lokasi: "Poli Gizi", kondisi: "Rusak Ringan", tahun: 2021 },
+            { id: "AST-004", kode: "1010101004", nama: "Autoclave Sterilisator 24L", merk: "GEA", lokasi: "Ruang Tindakan / UGD", kondisi: "Baik", tahun: 2024 },
+            { id: "AST-005", kode: "1010101005", nama: "Dental Chair Unit", merk: "Gnatus", lokasi: "Poli Gigi", kondisi: "Rusak Sedang", tahun: 2020 },
+            { id: "AST-006", kode: "1010101006", nama: "Mikroskop Binokuler", merk: "Olympus CX23", lokasi: "Laboratorium", kondisi: "Baik", tahun: 2023 },
+            { id: "AST-007", kode: "1010101007", nama: "AC Split 1.5 PK", merk: "Panasonic", lokasi: "Apotek / Farmasi", kondisi: "Rusak Berat", tahun: 2018 }
+        ];
+
+        let html5QrcodeScanner = null;
+
+        window.onload = function() {
+            generateNextAssetID();
+            renderTableAset();
+            loadSettings();
+        };
+
+        function handleLogin(e) {
+            e.preventDefault();
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+        }
+
+        function handleLogout() {
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        function switchTab(tabName) {
+            ['entry', 'import', 'scan', 'laporan', 'settings'].forEach(t => {
+                document.getElementById(`tab-${t}`).classList.add('hidden');
+                document.getElementById(`nav-${t}`).classList.remove('bg-emerald-600', 'text-white');
+            });
+
+            document.getElementById(`tab-${tabName}`).classList.remove('hidden');
+            document.getElementById(`nav-${tabName}`).classList.add('bg-emerald-600', 'text-white');
+
+            if(tabName === 'scan') {
+                if(!html5QrcodeScanner) {
+                    html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
+                    html5QrcodeScanner.render((text) => {
+                        document.getElementById('scanOutputCard').classList.remove('hidden');
+                        document.getElementById('scanDetails').innerText = text;
+                    });
+                }
+            }
+        }
+
+        function generateNextAssetID() {
+            document.getElementById('entryAsetID').value = `AST-${String(assetDataStore.length + 1).padStart(3, '0')}`;
+        }
+
+        function handleEntryAset(e) {
+            e.preventDefault();
+            const id = document.getElementById('entryAsetID').value;
+            const kode = document.getElementById('entryKodeBarang').value;
+            const nama = document.getElementById('entryNamaBarang').value;
+            const merk = document.getElementById('entryMerkTipe').value;
+            const lokasi = document.getElementById('entryLokasi').value;
+            const kondisi = document.getElementById('entryKondisi').value;
+            const tahun = document.getElementById('entryTahun').value;
+
+            const newAsset = { id, kode, nama, merk, lokasi, kondisi, tahun };
+            assetDataStore.push(newAsset);
+
+            const qrCanvas = document.getElementById('qrcodeCanvas');
+            qrCanvas.innerHTML = "";
+            new QRCode(qrCanvas, { text: id, width: 120, height: 120 });
+
+            document.getElementById('qrOutputLabel').innerText = `${id} - ${nama} (${kondisi})`;
+            document.getElementById('qrOutputCard').classList.remove('hidden');
+
+            sendToAppsScript(newAsset);
+            renderTableAset();
+            generateNextAssetID();
+            alert("Aset tersimpan & QR-Code dibuat!");
+        }
+
+        function renderTableAset() {
+            const tbody = document.getElementById('tableAsetBody');
+            tbody.innerHTML = "";
+            assetDataStore.forEach(item => {
+                let badge = "bg-emerald-100 text-emerald-800";
+                if(item.kondisi === "Rusak Ringan") badge = "bg-amber-100 text-amber-800";
+                if(item.kondisi === "Rusak Sedang") badge = "bg-orange-100 text-orange-800";
+                if(item.kondisi === "Rusak Berat") badge = "bg-red-100 text-red-800";
+
+                tbody.innerHTML += `
+                    <tr class="hover:bg-slate-50">
+                        <td class="p-3 font-mono font-bold">${item.id}</td>
+                        <td class="p-3 font-mono">${item.kode}</td>
+                        <td class="p-3 font-bold">${item.nama}</td>
+                        <td class="p-3">${item.merk}</td>
+                        <td class="p-3">${item.lokasi}</td>
+                        <td class="p-3"><span class="px-2 py-1 rounded-full text-[10px] font-bold ${badge}">${item.kondisi}</span></td>
+                        <td class="p-3">${item.tahun}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        function handleExcelUpload(e) {
+            const file = e.target.files[0];
+            if(!file) return;
+            document.getElementById('excelFileName').innerText = file.name;
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const data = new Uint8Array(event.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+                jsonData.forEach((row, idx) => {
+                    assetDataStore.push({
+                        id: row['ID Aset'] || `AST-X${idx+1}`,
+                        kode: row['Kode Barang'] || '1010101000',
+                        nama: row['Nama Sarana / Prasarana'] || row['Nama Barang'] || 'Barang Import',
+                        merk: row['Merk / Tipe'] || '-',
+                        lokasi: row['Lokasi Ruangan'] || 'Gudang',
+                        kondisi: row['Kondisi Aset'] || 'Baik',
+                        tahun: row['Tahun Pengadaan'] || 2026
+                    });
+                });
+                renderTableAset();
+                alert(`Berhasil mengimpor ${jsonData.length} barang dari Excel!`);
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function downloadPDFLaporan() {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            doc.setFontSize(12).setFont("helvetica", "bold");
+            doc.text("PEMERINTAH KABUPATEN MANDAILING NATAL", 105, 15, null, null, "center");
+            doc.setFontSize(14);
+            doc.text("UPTD PUSKESMAS MOMPANG", 105, 22, null, null, "center");
+            doc.setFontSize(9).setFont("helvetica", "normal");
+            doc.text("Sistem Inventarisasi Aset Berbasis QR-Code (SIAGA)", 105, 27, null, null, "center");
+            doc.line(14, 31, 196, 31);
+
+            const rows = assetDataStore.map(a => [a.id, a.kode, a.nama, a.merk, a.lokasi, a.kondisi, a.tahun]);
+            doc.autoTable({
+                startY: 38,
+                head: [['ID Aset', 'Kode', 'Nama Barang', 'Merk/Tipe', 'Lokasi', 'Kondisi', 'Tahun']],
+                body: rows,
+                theme: 'striped',
+                headStyles: { fillColor: [5, 150, 105] }
+            });
+            doc.save("Laporan_Aset_SIAGA_Puskesmas_Mompang.pdf");
+        }
+
+        function saveSettings() {
+            localStorage.setItem('siaga_script_url', document.getElementById('settingAppsScriptUrl').value);
+            localStorage.setItem('siaga_logo_kop', document.getElementById('settingLogoKopUrl').value);
+            localStorage.setItem('siaga_logo_siaga', document.getElementById('settingLogoSiagaUrl').value);
+            localStorage.setItem('siaga_bg_url', document.getElementById('settingBgUrl').value);
+            loadSettings();
+            alert("Pengaturan Berhasil Disimpan!");
+        }
+
+        function loadSettings() {
+            document.getElementById('settingAppsScriptUrl').value = localStorage.getItem('siaga_script_url') || '';
+            document.getElementById('settingLogoKopUrl').value = localStorage.getItem('siaga_logo_kop') || '';
+            document.getElementById('settingLogoSiagaUrl').value = localStorage.getItem('siaga_logo_siaga') || '';
+            document.getElementById('settingBgUrl').value = localStorage.getItem('siaga_bg_url') || '';
+
+            if(localStorage.getItem('siaga_logo_kop')) document.getElementById('headerLogoKop').src = localStorage.getItem('siaga_logo_kop');
+            if(localStorage.getItem('siaga_logo_siaga')) {
+                document.getElementById('loginLogoSiaga').src = localStorage.getItem('siaga_logo_siaga');
+                document.getElementById('sidebarLogoSiaga').src = localStorage.getItem('siaga_logo_siaga');
+            }
+            if(localStorage.getItem('siaga_bg_url')) document.getElementById('appBody').style.backgroundImage = `url('${localStorage.getItem('siaga_bg_url')}')`;
+        }
+
+        function sendToAppsScript(data) {
+            const scriptUrl = localStorage.getItem('siaga_script_url');
+            if(!scriptUrl) return;
+            fetch(scriptUrl, {
+                method: 'POST',
+                mode: 'no-cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    id_aset: data.id,
+                    kode_barang: data.kode,
+                    nama_barang: data.nama,
+                    merk_tipe: data.merk,
+                    lokasi_ruangan: data.lokasi,
+                    kondisi_aset: data.kondisi,
+                    tahun_pengadaan: data.tahun
+                })
+            });
+        }
+    </script>
+</body>
+</html>
