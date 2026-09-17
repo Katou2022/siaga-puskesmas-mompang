@@ -32,10 +32,10 @@
 
     <!-- MAIN APP CONTAINER -->
     <div id="mainApp" class="hidden min-h-screen flex flex-col">
-        <!-- HEADER -->
+        <!-- HEADER DASHBOARD -->
         <header class="bg-white/95 backdrop-blur border-b border-slate-200 px-6 py-3 flex flex-wrap justify-between items-center shadow-sm">
             <div class="flex items-center space-x-4">
-                <img id="headerLogoKop" src="https://via.placeholder.com/60?text=Puskesmas" alt="Logo Kop" class="h-12 w-auto object-contain">
+                <img id="headerLogoKop" src="https://via.placeholder.com/60?text=Puskesmas" alt="Logo Kop Surat" class="h-12 w-auto object-contain">
                 <div class="border-l border-slate-300 pl-4 py-0.5">
                     <h1 class="text-xs md:text-sm font-semibold text-slate-600 uppercase tracking-wide leading-tight">PEMERINTAH KABUPATEN MANDAILING NATAL</h1>
                     <h2 class="text-base md:text-lg font-bold text-emerald-700 leading-snug">UPTD PUSKESMAS MOMPANG</h2>
@@ -55,7 +55,7 @@
         </header>
 
         <div class="flex-1 flex flex-col md:flex-row">
-            <!-- SIDEBAR -->
+            <!-- SIDEBAR NAVIGASI -->
             <aside class="w-full md:w-64 bg-slate-900/95 text-slate-300 p-5 space-y-3">
                 <div class="flex items-center space-x-3 mb-6 border-b border-slate-800 pb-4">
                     <img id="sidebarLogoSiaga" src="https://via.placeholder.com/40?text=SIAGA" class="h-10 w-10 rounded-full object-cover">
@@ -70,7 +70,7 @@
                 </nav>
             </aside>
 
-            <!-- MAIN CONTENT -->
+            <!-- MAIN CONTENT AREA -->
             <main class="flex-1 p-6 space-y-6">
                 <!-- TAB 1: ENTRY ASET -->
                 <section id="tab-entry" class="bg-white/95 backdrop-blur p-6 rounded-2xl shadow-sm border">
@@ -148,8 +148,8 @@
                     </div>
 
                     <div>
-                        <label class="block text-xs font-bold text-slate-700 mb-1">URL Web App Google Apps Script API</label>
-                        <input type="text" id="settingAppsScriptUrl" onchange="saveScriptUrl(this.value)" placeholder="https://script.google.com/macros/s/.../exec" class="w-full border p-2.5 rounded-lg text-sm font-mono">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">URL Web App Google Apps Script API (Otomatis)</label>
+                        <input type="text" id="settingAppsScriptUrl" class="w-full border p-2.5 rounded-lg text-sm font-mono bg-slate-100" readonly>
                     </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 pt-2">
@@ -187,62 +187,20 @@
 
     <!-- JAVASCRIPT ENGINE -->
     <script>
-        const AUTOMATED_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz.../exec"; // Ganti dengan URL /exec Anda
+        // URL APPS SCRIPT ANDA
+        const AUTOMATED_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz.../exec";
 
         let assetDataStore = [];
         let html5QrcodeScanner = null;
         let uploadedImageBase64 = "";
 
         window.onload = function() {
-            let savedUrl = localStorage.getItem('siaga_script_url');
-            if (!savedUrl) {
-                localStorage.setItem('siaga_script_url', AUTOMATED_APPS_SCRIPT_URL);
-            }
-
+            localStorage.setItem('siaga_script_url', AUTOMATED_APPS_SCRIPT_URL);
             loadSettingsAndUI();
             fetchDataFromServer();
         };
 
-        function saveScriptUrl(url) {
-            localStorage.setItem('siaga_script_url', url.trim());
-            alert("URL API Berhasil Disimpan!");
-            fetchDataFromServer();
-        }
-
-        // Ambil Data dari Server Google Sheets / Drive
-        function fetchDataFromServer() {
-            const scriptUrl = localStorage.getItem('siaga_script_url');
-            if (!scriptUrl || scriptUrl.includes("AKfycbz...")) return;
-
-            fetch(scriptUrl)
-                .then(res => res.json())
-                .then(response => {
-                    if (response.status === "success" && Array.isArray(response.data) && response.data.length > 1) {
-                        let serverAssets = [];
-                        for (let i = 1; i < response.data.length; i++) {
-                            let row = response.data[i];
-                            if (row[0]) {
-                                serverAssets.push({
-                                    id: row[0],
-                                    kode: row[1],
-                                    nama: row[2],
-                                    merk: row[3],
-                                    lokasi: row[4],
-                                    kondisi: row[5],
-                                    tahun: row[6],
-                                    gambar: row[7] || "https://via.placeholder.com/150?text=No+Image"
-                                });
-                            }
-                        }
-                        assetDataStore = serverAssets;
-                        renderTableAset();
-                        generateNextAssetID();
-                        checkDirectUrlScan();
-                    }
-                }).catch(err => console.log("Gagal sinkronisasi server: ", err));
-        }
-
-        // Handle Upload Foto di Entry
+        // HANDLE UPLOAD FOTO DI ENTRY
         document.getElementById('entryGambar')?.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -277,7 +235,40 @@
             }
         });
 
-        // Auto Scan & Tampilkan Popup Detail Gambar dari Drive
+        // AMBIL DATA & GAMBAR DARI SERVER GOOGLE SHEETS
+        function fetchDataFromServer() {
+            const scriptUrl = localStorage.getItem('siaga_script_url');
+            if (!scriptUrl || scriptUrl.includes("AKfycbz...")) return;
+
+            fetch(scriptUrl)
+                .then(res => res.json())
+                .then(response => {
+                    if (response.status === "success" && Array.isArray(response.data) && response.data.length > 1) {
+                        let serverAssets = [];
+                        for (let i = 1; i < response.data.length; i++) {
+                            let row = response.data[i];
+                            if (row[0]) {
+                                serverAssets.push({
+                                    id: row[0],
+                                    kode: row[1],
+                                    nama: row[2],
+                                    merk: row[3],
+                                    lokasi: row[4],
+                                    kondisi: row[5],
+                                    tahun: row[6],
+                                    gambar: row[7] || "https://via.placeholder.com/150?text=No+Image"
+                                });
+                            }
+                        }
+                        assetDataStore = serverAssets;
+                        renderTableAset();
+                        generateNextAssetID();
+                        checkDirectUrlScan();
+                    }
+                }).catch(err => console.log("Gagal sinkronisasi server: ", err));
+        }
+
+        // AUTO SCAN DAN TAMPILKAN POPUP GAMBAR DARI SERVER
         function checkDirectUrlScan() {
             const urlParams = new URLSearchParams(window.location.search);
             const assetId = urlParams.get('id');
@@ -291,8 +282,11 @@
                 if (assetId) {
                     const matchedAsset = assetDataStore.find(item => item.id === assetId);
                     if (matchedAsset) {
-                        setTimeout(() => showAssetDetailModal(matchedAsset), 400);
+                        setTimeout(() => {
+                            showAssetDetailModal(matchedAsset);
+                        }, 500);
                     } else {
+                        // Jika belum ada di memori lokal, ambil via API GET satuan
                         const scriptUrl = localStorage.getItem('siaga_script_url');
                         fetch(`${scriptUrl}?id=${assetId}`)
                             .then(res => res.json())
@@ -306,6 +300,7 @@
             }
         }
 
+        // MODAL POPUP DETAIL & GAMBAR
         function showAssetDetailModal(asset) {
             let modal = document.getElementById('detailAssetModal');
             if (!modal) {
@@ -324,7 +319,7 @@
                     </div>
                     
                     <div class="flex justify-center bg-slate-50 p-2 rounded-xl border">
-                        <img src="${asset.gambar || 'https://via.placeholder.com/150?text=No+Image'}" alt="Foto Aset" class="w-44 h-44 object-cover rounded-lg shadow-sm border">
+                        <img src="${asset.gambar}" alt="Foto Aset" class="w-44 h-44 object-cover rounded-lg shadow-sm border">
                     </div>
 
                     <div class="grid grid-cols-2 gap-3 text-xs">
@@ -380,7 +375,9 @@
                 html5QrcodeScanner.render((text) => {
                     document.getElementById('scanOutputCard').classList.remove('hidden');
                     document.getElementById('scanOutputCard').innerText = `Aset Terdeteksi: ${text}`;
-                    if(text.startsWith('http')) window.location.href = text;
+                    if(text.startsWith('http')) {
+                        window.location.href = text;
+                    }
                 });
             }
         }
@@ -424,7 +421,7 @@
             document.getElementById('labelNamaFoto').innerText = "Belum ada foto dipilih";
             uploadedImageBase64 = "";
 
-            alert("Aset, Foto ke Google Drive, & QR-Code Berhasil Dibuat!");
+            alert("Aset, foto, & QR-Code Berhasil Disimpan ke Server!");
         }
 
         function renderTableAset() {
@@ -541,7 +538,7 @@
         }
 
         function loadSettingsAndUI() {
-            document.getElementById('settingAppsScriptUrl').value = localStorage.getItem('siaga_script_url') || "";
+            document.getElementById('settingAppsScriptUrl').value = localStorage.getItem('siaga_script_url') || AUTOMATED_APPS_SCRIPT_URL;
 
             const kop = localStorage.getItem('upload_logo_kop');
             const siaga = localStorage.getItem('upload_logo_siaga');
@@ -566,7 +563,6 @@
             localStorage.removeItem('upload_logo_kop');
             localStorage.removeItem('upload_logo_siaga');
             localStorage.removeItem('upload_bg_web');
-            localStorage.removeItem('siaga_script_url');
             location.reload();
         }
 
@@ -585,7 +581,7 @@
                     lokasi_ruangan: data.lokasi,
                     kondisi_aset: data.kondisi,
                     tahun_pengadaan: data.tahun,
-                    gambar_base64: data.gambar, // Mengirim foto untuk disimpan di folder Google Drive
+                    gambar_aset: data.gambar,
                     web_url: webUrl
                 })
             });
