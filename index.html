@@ -117,7 +117,8 @@
 
                 <!-- TAB 3: SCANNER WEB -->
                 <section id="tab-scan" class="hidden bg-white/95 backdrop-blur p-6 rounded-2xl shadow-sm border space-y-4">
-                    <h3 class="text-xl font-bold border-b pb-2">📷 Pemindai QR-Code Web</h3>
+                    <h3 class="text-xl font-bold border-b pb-2">📷 Pemindai QR-Code & Barcode Spesifik</h3>
+                    <p class="text-xs text-slate-500">Arahkan kamera HP ke QR-Code atau barcode aset. Sistem akan langsung mencocokkan ID secara spesifik dan membuka detail barang.</p>
                     <div class="max-w-md mx-auto space-y-4">
                         <div id="qr-reader" class="rounded-xl overflow-hidden border"></div>
                         <div id="scanOutputCard" class="hidden p-4 bg-emerald-50 border text-slate-800 rounded-xl font-semibold text-sm"></div>
@@ -187,8 +188,7 @@
 
     <!-- JAVASCRIPT ENGINE -->
     <script>
-        // URL APPS SCRIPT ANDA
-        const AUTOMATED_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz.../exec";
+        const AUTOMATED_APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz.../exec"; // Ganti dengan URL /exec Anda
 
         let assetDataStore = [];
         let html5QrcodeScanner = null;
@@ -200,7 +200,7 @@
             fetchDataFromServer();
         };
 
-        // HANDLE UPLOAD FOTO DI ENTRY
+        // Handle Upload Foto di Entry
         document.getElementById('entryGambar')?.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (file) {
@@ -235,7 +235,7 @@
             }
         });
 
-        // AMBIL DATA & GAMBAR DARI SERVER GOOGLE SHEETS
+        // Ambil Data & Gambar dari Server Google Sheets / Drive
         function fetchDataFromServer() {
             const scriptUrl = localStorage.getItem('siaga_script_url');
             if (!scriptUrl || scriptUrl.includes("AKfycbz...")) return;
@@ -268,7 +268,7 @@
                 }).catch(err => console.log("Gagal sinkronisasi server: ", err));
         }
 
-        // AUTO SCAN DAN TAMPILKAN POPUP GAMBAR DARI SERVER
+        // Auto Scan & Tampilkan Popup Detail Spesifik Aset
         function checkDirectUrlScan() {
             const urlParams = new URLSearchParams(window.location.search);
             const assetId = urlParams.get('id');
@@ -282,11 +282,8 @@
                 if (assetId) {
                     const matchedAsset = assetDataStore.find(item => item.id === assetId);
                     if (matchedAsset) {
-                        setTimeout(() => {
-                            showAssetDetailModal(matchedAsset);
-                        }, 500);
+                        setTimeout(() => showAssetDetailModal(matchedAsset), 500);
                     } else {
-                        // Jika belum ada di memori lokal, ambil via API GET satuan
                         const scriptUrl = localStorage.getItem('siaga_script_url');
                         fetch(`${scriptUrl}?id=${assetId}`)
                             .then(res => res.json())
@@ -300,7 +297,7 @@
             }
         }
 
-        // MODAL POPUP DETAIL & GAMBAR
+        // Modal Popup Detail Spesifik Aset & Foto
         function showAssetDetailModal(asset) {
             let modal = document.getElementById('detailAssetModal');
             if (!modal) {
@@ -315,7 +312,7 @@
                     <button onclick="document.getElementById('detailAssetModal').remove()" class="absolute top-4 right-4 text-slate-400 hover:text-red-500 font-bold text-xl">&times;</button>
                     <div class="flex items-center space-x-2 border-b pb-3">
                         <span class="bg-emerald-600 text-white font-bold text-xs px-2.5 py-1 rounded-md">SIAGA</span>
-                        <h3 class="text-base font-bold text-slate-900">Detail Aset: ${asset.id}</h3>
+                        <h3 class="text-base font-bold text-slate-900">Detail Spesifik Aset: ${asset.id}</h3>
                     </div>
                     
                     <div class="flex justify-center bg-slate-50 p-2 rounded-xl border">
@@ -370,15 +367,35 @@
             document.getElementById(`tab-${tabName}`).classList.remove('hidden');
             document.getElementById(`nav-${tabName}`).classList.add('bg-emerald-600', 'text-white');
 
+            // Inisialisasi Scanner Kamera HP Spesifik
             if(tabName === 'scan' && !html5QrcodeScanner) {
                 html5QrcodeScanner = new Html5QrcodeScanner("qr-reader", { fps: 10, qrbox: 250 });
-                html5QrcodeScanner.render((text) => {
+                html5QrcodeScanner.render((decodedText) => {
                     document.getElementById('scanOutputCard').classList.remove('hidden');
-                    document.getElementById('scanOutputCard').innerText = `Aset Terdeteksi: ${text}`;
-                    if(text.startsWith('http')) {
-                        window.location.href = text;
+                    document.getElementById('scanOutputCard').innerText = `Terdeteksi: ${decodedText}`;
+                    
+                    if (decodedText.startsWith('http')) {
+                        window.location.href = decodedText;
+                    } else {
+                        const matchedAsset = assetDataStore.find(item => item.id === decodedText);
+                        if (matchedAsset) {
+                            switchTab('laporan');
+                            showAssetDetailModal(matchedAsset);
+                        } else {
+                            const scriptUrl = localStorage.getItem('siaga_script_url');
+                            fetch(`${scriptUrl}?id=${decodedText}`)
+                                .then(res => res.json())
+                                .then(data => {
+                                    if (data.status === "success" && data.asset) {
+                                        switchTab('laporan');
+                                        showAssetDetailModal(data.asset);
+                                    } else {
+                                        alert(`Aset dengan ID "${decodedText}" tidak ditemukan di database server!`);
+                                    }
+                                });
+                        }
                     }
-                });
+                }, (error) => {});
             }
         }
 
@@ -589,3 +606,4 @@
     </script>
 </body>
 </html>
+```[cite: 1]
